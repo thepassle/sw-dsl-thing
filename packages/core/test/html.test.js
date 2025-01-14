@@ -61,6 +61,23 @@ describe('parsing', () => {
       assert.equal(result[2], 'world');
     });
 
+    it('escaped', () => {
+      const result = unwrap(html`<div>${'<script>alert("pwned")</script>'}</div>`);
+      assert.equal(result[1], '&lt;script&gt;alert(&quot;pwned&quot;)&lt;/script&gt;');
+    });
+
+    it('escaped prop', () => {
+      function Foo() {}
+      const result = unwrap(html`<${Foo} bar=${'<script>alert("pwned")</script>'}><//>`);
+      assert.equal(result[0].properties[0].value, '&lt;script&gt;alert(&quot;pwned&quot;)&lt;/script&gt;');
+    });
+
+    it('children dont get escaped', () => {
+      const Foo = ({children}) => html`<div>${children}</div>`;
+      const result = unwrap(html`<${Foo}><script>alert('pwned')</script><//>`);
+      assert.equal(result[0].children[0], '<script>alert(\'pwned\')</script>');
+    });
+
     describe('attributes', () => {
       it('no quote', () => {
         const result = unwrap(html`<my-el foo=b></my-el>`);

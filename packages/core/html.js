@@ -22,6 +22,36 @@ const customElementTagRegex = /^([a-z0-9]+-[a-z0-9-]*)/;
 const noSelfClosing = t => `Custom elements cannot be self-closing: "${t}"`;
 
 /**
+ * @type {{ [key: string]: string }}
+ */
+const replacements = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+/**
+ * @param {string} str
+ * @returns {string}
+ * Replaces characters which have special meaning in HTML (&<>"') with escaped
+ * HTML entities ("&amp;", "&lt;", etc.).
+ * 
+ * Thank you lit-html
+ */
+export const escapeHtml = (str) =>
+  str.replace(
+    /[&<>"']/g,
+    /**
+     * @param {string} char
+     * @returns {string}
+     */
+    (char) => replacements[char]
+  );
+
+
+/**
  * @param {TemplateStringsArray} statics 
  * @param  {...unknown} dynamics 
  * @returns {HtmlResult}
@@ -230,7 +260,7 @@ export function* html(statics, ...dynamics) {
                   j++;
                 }
 
-                property.value = val || '';
+                property.value = escapeHtml(val) || '';
                 PROP_MODE = SET_PROP;
               }
               /**
@@ -238,7 +268,8 @@ export function* html(statics, ...dynamics) {
                *                          ^
                */
             } else if (!statics[i][j - 1]) {
-              property.value = dynamics[i - 1];
+              const d = dynamics[i - 1];
+              property.value = typeof d === 'string' ? escapeHtml(d) : d;
               PROP_MODE = SET_PROP;
 
               if(statics[i][j] === '>') {
@@ -460,7 +491,8 @@ export function* html(statics, ...dynamics) {
 
     // We're at the end of statics, now process dynamics if there are any
     if (dynamics.length > i && MODE !== COMPONENT) {
-      yield dynamics[i];
+      const d = dynamics[i];
+      yield typeof d === 'string' ? escapeHtml(d) : d;
     }
   }
 }
